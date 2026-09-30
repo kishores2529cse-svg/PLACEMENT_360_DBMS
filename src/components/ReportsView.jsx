@@ -91,8 +91,8 @@ export default function ReportsView({ students, drives }) {
                     cursor={{fill: '#f8fafc'}}
                     contentStyle={{ borderRadius: '2px', border: '1px solid #e2e8f0', boxShadow: 'none' }}
                   />
-                  <Bar dataKey="placed" name="Placed" stackId="a" fill="black" />
-                  <Bar dataKey="unplaced" name="Not Placed" stackId="a" fill="#c6c6c6" />
+                  <Bar dataKey="placed" name="Placed" stackId="a" fill="#24a148" />
+                  <Bar dataKey="unplaced" name="Not Placed" stackId="a" fill="#f1c21b" />
                 </BarChart>
               </ResponsiveContainer>
             </div>
