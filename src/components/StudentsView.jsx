@@ -240,7 +240,7 @@ export default function StudentsView({
           </div>
 
           {filtered.length > 0 && (
-            <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 bg-white">
+            <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 border-t border-slate-200 bg-white gap-3 sm:gap-0">
               <div className="text-xs text-slate-500">
                 Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filtered.length)} of {filtered.length} entries
               </div>

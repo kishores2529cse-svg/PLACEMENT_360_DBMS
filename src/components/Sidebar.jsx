@@ -2,7 +2,7 @@ import React from 'react';
 import { LayoutDashboard, Users, Building2, CalendarDays, FileText, CheckCircle, XCircle, BarChart3, User, Settings, Database } from 'lucide-react';
 import { cn } from '../lib/utils';
 
-export default function Sidebar({ activeTab, setActiveTab }) {
+export default function Sidebar({ activeTab, setActiveTab, isOpen, setIsOpen }) {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'students', label: 'Students', icon: Users },
@@ -16,8 +16,20 @@ export default function Sidebar({ activeTab, setActiveTab }) {
   ];
 
   return (
-    <aside className="w-64 bg-black border-r border-neutral-800 flex flex-col justify-between min-h-screen text-neutral-300 select-none shrink-0">
-      <div className="flex flex-col h-full">
+    <>
+      {/* Mobile overlay */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity" 
+          onClick={() => setIsOpen && setIsOpen(false)} 
+        />
+      )}
+      <aside className={cn(
+        "w-64 bg-black border-r border-neutral-800 flex flex-col justify-between min-h-screen text-neutral-300 select-none shrink-0",
+        "fixed md:static inset-y-0 left-0 z-50 transform transition-transform duration-200 ease-in-out",
+        isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
+      )}>
+        <div className="flex flex-col h-full overflow-y-auto">
         <div className="p-5">
           <div className="flex items-center gap-3 mb-8 px-2 cursor-pointer" onClick={() => setActiveTab('dashboard')}>
             <div className="w-8 h-8 bg-white text-black flex items-center justify-center font-bold text-lg">
@@ -40,7 +52,10 @@ export default function Sidebar({ activeTab, setActiveTab }) {
                 return (
                   <button
                     key={item.id}
-                    onClick={() => setActiveTab(item.id)}
+                    onClick={() => {
+                      setActiveTab(item.id);
+                      if (setIsOpen) setIsOpen(false);
+                    }}
                     className={cn(
                       "w-full flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors",
                       isActive
@@ -84,6 +99,7 @@ export default function Sidebar({ activeTab, setActiveTab }) {
           </button>
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }
