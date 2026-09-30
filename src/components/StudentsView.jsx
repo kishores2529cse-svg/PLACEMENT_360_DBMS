@@ -1,242 +1,276 @@
-import React, { useState } from 'react';
-import { Search, UserPlus, ArrowRightLeft } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Search, Filter, MoreVertical, Edit2 } from 'lucide-react';
+import { Button } from './ui/Button';
+import { Input } from './ui/Input';
+import { Badge } from './ui/Badge';
+import { Card, CardContent } from './ui/Card';
 
 export default function StudentsView({ 
   viewType, 
   data, 
   onOpenAddStudentModal,
-  onMoveToPlaced,
   onMoveToNotPlaced,
-  onMoveToNonPlacement
+  onMoveToPlaced,
+  onMoveToNonPlacement,
+  onEditStudent
 }) {
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [deptFilter, setDeptFilter] = useState('All');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 15;
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [minCgpa, setMinCgpa] = useState('');
+  const [maxBacklogs, setMaxBacklogs] = useState('');
 
-  const filtered = data.filter(s => 
-    s.name.toLowerCase().includes(search.toLowerCase()) ||
-    s.rollNo.toLowerCase().includes(search.toLowerCase())
-  );
+  const departments = useMemo(() => {
+    const depts = new Set(data.map(d => d.dept).filter(Boolean));
+    return ['All', ...Array.from(depts)];
+  }, [data]);
+
+  const filtered = useMemo(() => {
+    return data.filter(s => {
+      const matchesSearch = 
+        (s.name && s.name.toLowerCase().includes(search.toLowerCase())) ||
+        (s.rollNo && s.rollNo.toLowerCase().includes(search.toLowerCase()));
+      
+      const matchesStatus = statusFilter === 'All' || s.status === statusFilter;
+      const matchesDept = deptFilter === 'All' || s.dept === deptFilter;
+      
+      const cgpaVal = parseFloat(s.cgpa);
+      const matchesMinCgpa = minCgpa === '' || (!isNaN(cgpaVal) && cgpaVal >= parseFloat(minCgpa));
+      
+      const backlogsVal = parseInt(s.backlogs);
+      const matchesMaxBacklogs = maxBacklogs === '' || (!isNaN(backlogsVal) && backlogsVal <= parseInt(maxBacklogs));
+
+      return matchesSearch && matchesStatus && matchesDept && matchesMinCgpa && matchesMaxBacklogs;
+    });
+  }, [data, search, statusFilter, deptFilter, minCgpa, maxBacklogs]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / itemsPerPage));
+  const paginatedData = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  const getStatusBadgeVariant = (status) => {
+    switch(status) {
+      case 'Placed': return 'success';
+      case 'Not Placed': return 'warning';
+      case 'Non-Placement': return 'default';
+      default: return 'outline';
+    }
+  };
 
   return (
-    <div className="space-y-6">
-      <div className="bg-white dark:bg-[#18181C] p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
+    <div className="space-y-4">
+      
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-200">
         <div>
-          <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">
-            {viewType === 'all' && 'All Students Complete Details'}
-            {viewType === 'placed' && 'Placed Students Directory'}
-            {viewType === 'not_placed' && 'Students Awaiting Placement'}
-            {viewType === 'non_placement' && 'Non-Placement (Opt-Out) Directory'}
+          <h2 className="text-xl font-semibold text-slate-900">
+            {viewType === 'all' ? 'Student Directory' : viewType === 'placed' ? 'Placed Students' : 'Not Placed Students'}
           </h2>
-          <p className="text-xs text-slate-400 font-medium">
-            {viewType === 'all' && 'Master view of all registered student records across all tables.'}
-            {viewType === 'placed' && 'Records from STUDENTS_PLACED table (On-campus & Off-campus).'}
-            {viewType === 'not_placed' && 'Records from STUDENTS_NOTPLACED table.'}
-            {viewType === 'non_placement' && 'Records from NON_PLACEMENT table (Higher studies, Business, etc).'}
+          <p className="text-sm text-slate-500">
+            {viewType === 'all' 
+              ? 'Manage and track all registered students across the institution.'
+              : viewType === 'placed' 
+              ? 'Directory of students who have secured placements.'
+              : 'Directory of students actively seeking placements.'}
           </p>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
-          <div className="relative flex-1 sm:flex-initial">
-            <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Filter by name or roll..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9 pr-4 py-2 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 focus:outline-none focus:border-yellow-500 w-full sm:w-56"
+        {viewType === 'all' && (
+          <Button onClick={onOpenAddStudentModal}>
+            Add Student
+          </Button>
+        )}
+      </div>
+
+      <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
+        <div className="relative flex-1 w-full max-w-sm">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+          <Input
+            placeholder="Search by name or register number..."
+            value={search}
+            onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
+            className="pl-8 bg-white"
+          />
+        </div>
+        
+        {viewType === 'all' && (
+          <select 
+            value={statusFilter}
+            onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+            className="h-9 px-3 border border-slate-300 bg-white text-sm focus:outline-none focus:border-black focus:ring-1 focus:ring-black"
+          >
+            <option value="All">All Statuses</option>
+            <option value="Placed">Placed</option>
+            <option value="Not Placed">Not Placed</option>
+            <option value="Non-Placement">Non-Placement</option>
+          </select>
+        )}
+        
+        <select 
+          value={deptFilter}
+          onChange={(e) => { setDeptFilter(e.target.value); setCurrentPage(1); }}
+          className="h-9 px-3 border border-slate-300 bg-white text-sm focus:outline-none focus:border-black focus:ring-1 focus:ring-black"
+        >
+          {departments.map(d => (
+            <option key={d} value={d}>{d === 'All' ? 'All Departments' : d}</option>
+          ))}
+        </select>
+
+        <Button 
+          variant={showAdvancedFilters ? "secondary" : "outline"} 
+          className="ml-auto gap-2"
+          onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+        >
+          <Filter className="w-4 h-4" /> Filter Options
+        </Button>
+      </div>
+
+      {showAdvancedFilters && (
+        <div className="flex flex-wrap items-center gap-4 p-4 bg-slate-50 border border-slate-200">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-slate-700">Min CGPA:</span>
+            <Input 
+              type="number" 
+              step="0.1"
+              placeholder="e.g. 7.5"
+              className="h-8 w-24 text-xs" 
+              value={minCgpa} 
+              onChange={(e) => { setMinCgpa(e.target.value); setCurrentPage(1); }} 
             />
           </div>
-
-          {(viewType === 'all' || viewType === 'not_placed') && (
-            <button
-              onClick={onOpenAddStudentModal}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold text-xs shadow-md shadow-yellow-500/20 transition-all shrink-0"
-            >
-              <UserPlus className="w-4 h-4" />
-              <span>Add Student</span>
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-slate-700">Max Backlogs:</span>
+            <Input 
+              type="number" 
+              placeholder="e.g. 0"
+              className="h-8 w-24 text-xs" 
+              value={maxBacklogs} 
+              onChange={(e) => { setMaxBacklogs(e.target.value); setCurrentPage(1); }} 
+            />
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => { setMinCgpa(''); setMaxBacklogs(''); setCurrentPage(1); }} className="text-xs h-8 text-slate-500">
+            Clear Filters
+          </Button>
         </div>
-      </div>
+      )}
 
-      <div className="bg-white dark:bg-[#18181C] rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 dark:bg-slate-900/60 text-[11px] font-bold text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-800">
-                {/* Custom Headers exactly as requested for Placed table */}
-                {viewType === 'placed' ? (
-                  <>
-                    <th className="py-3.5 px-4">S.No</th>
-                    <th className="py-3.5 px-4">Register No</th>
-                    <th className="py-3.5 px-4">Student Name</th>
-                    <th className="py-3.5 px-4">Career Path</th>
-                    <th className="py-3.5 px-4">Department</th>
-                    <th className="py-3.5 px-4">Company Name</th>
-                  </>
-                ) : (
-                  <>
-                    <th className="py-3.5 px-4">Student</th>
-                    <th className="py-3.5 px-4">Dept</th>
-                    <th className="py-3.5 px-4">CGPA</th>
-                    {(viewType === 'all' || viewType === 'not_placed') && <th className="py-3.5 px-4">Backlogs</th>}
-                    {viewType === 'all' && (
+      <Card className="rounded-none border-x-0 sm:border-x sm:rounded-sm">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-sm">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-xs font-medium text-slate-500">
+                  <th className="py-2.5 px-4 font-medium">Register No</th>
+                  <th className="py-2.5 px-4 font-medium">Student Name</th>
+                  <th className="py-2.5 px-4 font-medium">Department</th>
+                  <th className="py-2.5 px-4 font-medium">CGPA</th>
+                  {viewType === 'not_placed' && (
+                    <th className="py-2.5 px-4 font-medium">Backlogs</th>
+                  )}
+                  {viewType === 'placed' && (
+                    <>
+                      <th className="py-2.5 px-4 font-medium">Company</th>
+                      <th className="py-2.5 px-4 font-medium">Career Path</th>
+                    </>
+                  )}
+                  {viewType === 'all' && <th className="py-2.5 px-4 font-medium">Status</th>}
+                  <th className="py-2.5 px-4 font-medium text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {paginatedData.map((s) => (
+                  <tr key={s.rollNo} className="hover:bg-slate-50">
+                    <td className="py-2.5 px-4 text-slate-500 font-mono text-xs">{s.rollNo}</td>
+                    <td className="py-2.5 px-4 font-medium text-slate-900">{s.name}</td>
+                    <td className="py-2.5 px-4 text-slate-600">{s.dept || '-'}</td>
+                    <td className="py-2.5 px-4 text-slate-900">{s.cgpa !== undefined ? s.cgpa : '-'}</td>
+
+                    {viewType === 'not_placed' && (
+                      <td className="py-2.5 px-4 text-slate-900">{s.backlogs !== undefined ? s.backlogs : '-'}</td>
+                    )}
+
+                    {viewType === 'placed' && (
                       <>
-                        <th className="py-3.5 px-4">Company</th>
-                        <th className="py-3.5 px-4">Path</th>
+                        <td className="py-2.5 px-4 text-slate-900">{s.offerCompany || '-'}</td>
+                        <td className="py-2.5 px-4 text-slate-600">{s.placementType || '-'}</td>
                       </>
                     )}
-                    {(viewType === 'all' || viewType === 'non_placement') && (
-                      <th className="py-3.5 px-4">Purpose</th>
+
+                    {viewType === 'all' && (
+                      <td className="py-2.5 px-4">
+                        <Badge variant={getStatusBadgeVariant(s.status)}>
+                          {s.status || 'Unknown'}
+                        </Badge>
+                      </td>
                     )}
-                  </>
-                )}
 
-                {viewType !== 'all' && <th className="py-3.5 px-4 text-right">Actions</th>}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 text-xs">
-              {filtered.map((s, index) => (
-                <tr key={s.rollNo} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
-                  
-                  {/* Custom Render exactly as requested for Placed table */}
-                  {viewType === 'placed' ? (
-                    <>
-                      <td className="py-3.5 px-4 font-bold text-slate-500">
-                        {s.sNo || index + 1}
-                      </td>
-                      <td className="py-3.5 px-4 font-mono text-slate-900 dark:text-white">
-                        {s.rollNo}
-                      </td>
-                      <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white">
-                        {s.name}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        {s.placementType ? (
-                          <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold text-[10px] uppercase">
-                            {s.placementType}
-                          </span>
+                    <td className="py-2.5 px-4 text-right">
+                      <div className="flex justify-end gap-2 items-center">
+                        <Button variant="ghost" size="sm" className="h-7 px-2 text-slate-500" onClick={() => onEditStudent && onEditStudent(s)}>
+                          <Edit2 className="w-3 h-3 mr-1" /> Edit
+                        </Button>
+                        {viewType === 'placed' ? (
+                          <Button variant="link" size="sm" onClick={() => onMoveToNotPlaced && onMoveToNotPlaced(s)}>
+                            Revert
+                          </Button>
+                        ) : viewType === 'not_placed' ? (
+                          <Button variant="link" size="sm" onClick={() => onMoveToPlaced && onMoveToPlaced(s)}>
+                            Mark Placed
+                          </Button>
                         ) : (
-                          <span className="text-slate-400">-</span>
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                            <MoreVertical className="w-4 h-4 text-slate-400" />
+                          </Button>
                         )}
-                      </td>
-                      <td className="py-3.5 px-4 font-semibold text-slate-700 dark:text-slate-300">
-                        {s.dept}
-                      </td>
-                      <td className="py-3.5 px-4 font-bold text-emerald-600 dark:text-emerald-400">
-                        {s.offerCompany || '-'}
-                      </td>
-                    </>
-                  ) : (
-                    <>
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-yellow-100 dark:bg-yellow-500/20 text-yellow-800 dark:text-yellow-300 font-extrabold flex items-center justify-center text-xs">
-                            {s.name.charAt(0)}
-                          </div>
-                          <div>
-                            <div className="font-bold text-slate-900 dark:text-white text-sm">{s.name}</div>
-                            <div className="text-[11px] font-mono text-slate-400">{s.rollNo}</div>
-                          </div>
-                        </div>
-                      </td>
-
-                      <td className="py-3.5 px-4 font-semibold text-slate-700 dark:text-slate-300">
-                        {s.dept}
-                      </td>
-
-                      <td className="py-3.5 px-4 font-bold text-slate-900 dark:text-white">
-                        {s.cgpa}
-                      </td>
-
-                      {(viewType === 'all' || viewType === 'not_placed') && (
-                        <td className="py-3.5 px-4">
-                          <span className={`px-2 py-0.5 rounded text-[11px] font-mono ${s.backlogs === 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300' : 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-300'}`}>
-                            {s.backlogs !== undefined ? s.backlogs : '-'}
-                          </span>
-                        </td>
-                      )}
-
-                      {viewType === 'all' && (
-                        <>
-                          <td className="py-3.5 px-4">
-                            <div className="font-bold text-slate-900 dark:text-white">{s.offerCompany || '-'}</div>
-                          </td>
-                          <td className="py-3.5 px-4">
-                            {s.placementType ? (
-                              <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-semibold text-[10px] uppercase">
-                                {s.placementType}
-                              </span>
-                            ) : (
-                              <span className="text-slate-400">-</span>
-                            )}
-                          </td>
-                        </>
-                      )}
-
-                      {(viewType === 'all' || viewType === 'non_placement') && (
-                        <td className="py-3.5 px-4 font-medium text-slate-700 dark:text-slate-300">
-                          {s.purpose || '-'}
-                        </td>
-                      )}
-                    </>
-                  )}
-
-                  {/* Action Buttons for explicit moves simulating DB operations */}
-                  {viewType === 'not_placed' && (
-                    <td className="py-3.5 px-4 text-right space-x-2">
-                      <button
-                        onClick={() => onMoveToPlaced(s)}
-                        className="text-[10px] font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded hover:bg-emerald-100 dark:hover:bg-emerald-500/20"
-                        title="Delete from Not Placed & Insert to Placed"
-                      >
-                        Mark Placed
-                      </button>
-                      <button
-                        onClick={() => onMoveToNonPlacement(s)}
-                        className="text-[10px] font-bold text-amber-600 bg-amber-50 dark:bg-amber-500/10 px-2 py-1 rounded hover:bg-amber-100 dark:hover:bg-amber-500/20"
-                        title="Delete from Not Placed & Insert to Non-Placement"
-                      >
-                        Opt-Out (Non-Placement)
-                      </button>
+                      </div>
                     </td>
-                  )}
+                  </tr>
+                ))}
 
-                  {viewType === 'placed' && (
-                    <td className="py-3.5 px-4 text-right">
-                      <button
-                        onClick={() => onMoveToNotPlaced(s)}
-                        className="text-[10px] font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center gap-1 inline-flex"
-                      >
-                        <ArrowRightLeft className="w-3 h-3" />
-                        Revert to Not Placed
-                      </button>
+                {paginatedData.length === 0 && (
+                  <tr>
+                    <td colSpan="8" className="py-8 text-center text-slate-500 bg-slate-50">
+                      No records found.
                     </td>
-                  )}
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
 
-                  {viewType === 'non_placement' && (
-                    <td className="py-3.5 px-4 text-right">
-                      <button
-                        onClick={() => onMoveToNotPlaced(s)}
-                        className="text-[10px] font-bold text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 flex items-center gap-1 inline-flex"
-                      >
-                        <ArrowRightLeft className="w-3 h-3" />
-                        Revert to Not Placed
-                      </button>
-                    </td>
-                  )}
-                </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr>
-                  <td colSpan="10" className="py-8 text-center text-slate-400">
-                    No records found in this table.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+          {filtered.length > 0 && (
+            <div className="flex items-center justify-between px-4 py-3 border-t border-slate-200 bg-white">
+              <div className="text-xs text-slate-500">
+                Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, filtered.length)} of {filtered.length} entries
+              </div>
+              <div className="flex items-center gap-1">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="h-8"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                <div className="text-xs px-3 text-slate-700">
+                  Page {currentPage} of {totalPages}
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="h-8"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

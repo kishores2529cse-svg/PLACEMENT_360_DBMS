@@ -1,65 +1,49 @@
 import React from 'react';
-import { Search, Sun, Moon, Sparkles } from 'lucide-react';
+import { Search, Bell, User } from 'lucide-react';
+import { Button } from './ui/Button';
+import { Input } from './ui/Input';
 
-export default function Header({ pageTitle, isDarkMode, setIsDarkMode, searchQuery, setSearchQuery }) {
+export default function Header({ pageTitle, searchQuery, setSearchQuery }) {
   return (
-    <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-6 px-8 bg-white dark:bg-[#18181C] border-b border-slate-200 dark:border-slate-800">
-      
-      {/* Page Title & Subheading */}
-      <div>
-        <div className="text-xs font-semibold text-slate-400 dark:text-slate-400 flex items-center gap-1.5">
-          <span>Welcome back</span>
-          <span>👋</span>
-        </div>
-        <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+    <header className="sticky top-0 z-10 bg-white border-b border-slate-200">
+      <div className="flex items-center justify-between px-6 h-14">
+        
+        {/* Page Title */}
+        <h1 className="text-lg font-semibold text-slate-800">
           {pageTitle}
         </h1>
-      </div>
 
-      {/* Right Controls */}
-      <div className="flex items-center gap-4">
-        
-        {/* Dark / Light Toggle Switch matching screenshot */}
-        <button
-          onClick={() => setIsDarkMode(!isDarkMode)}
-          className="w-14 h-8 rounded-full bg-slate-950 dark:bg-slate-800 p-1 flex items-center justify-between border border-slate-800 transition-colors relative"
-          title="Toggle Dark/Light Mode"
-        >
-          <Sun className={`w-4 h-4 text-amber-400 transition-opacity ${isDarkMode ? 'opacity-40' : 'opacity-100'}`} />
-          <Moon className={`w-4 h-4 text-yellow-400 transition-opacity ${isDarkMode ? 'opacity-100' : 'opacity-40'}`} />
-          <div className={`w-6 h-6 rounded-full bg-slate-800 dark:bg-slate-700 absolute top-1 transition-transform duration-200 ${isDarkMode ? 'translate-x-6' : 'translate-x-0'}`} />
-        </button>
-
-        {/* Search Input */}
-        <div className="relative">
-          <Search className="w-4 h-4 absolute left-3 top-2.5 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search students, roll no..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 pr-4 py-2 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-900 dark:text-slate-100 placeholder-slate-400 focus:outline-none focus:border-yellow-500 w-44 sm:w-60"
-          />
-        </div>
-
-        {/* Notification Icon Button */}
-        <button className="p-2 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors">
-          <Sparkles className="w-4 h-4 text-yellow-500" />
-        </button>
-
-        {/* Admin Badge */}
-        <div className="flex items-center gap-2.5 pl-2 border-l border-slate-200 dark:border-slate-800">
-          <div className="w-8 h-8 rounded-full bg-yellow-500 text-slate-950 font-bold flex items-center justify-center text-xs shadow-sm">
-            A
+        {/* Right Section */}
+        <div className="flex items-center gap-4">
+          {/* Search */}
+          <div className="relative hidden md:block w-64">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+            <Input 
+              type="text" 
+              placeholder="Search..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8 h-8 text-xs bg-slate-50 border-slate-200"
+            />
           </div>
-          <div className="hidden md:block">
-            <div className="text-xs font-bold text-slate-900 dark:text-white leading-tight">Admin</div>
-            <div className="text-[10px] text-slate-400 leading-tight">Administrator</div>
+
+          <div className="h-4 w-px bg-slate-200 mx-1 hidden sm:block"></div>
+
+          {/* Notifications */}
+          <button className="relative text-slate-500 hover:text-slate-700 transition-colors">
+            <Bell className="h-4 w-4" />
+            <span className="absolute -top-1 -right-1 w-2 h-2 bg-[#da1e28] rounded-full border border-white"></span>
+          </button>
+
+          {/* Profile */}
+          <div className="flex items-center gap-2 cursor-pointer group">
+            <div className="w-7 h-7 bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600 group-hover:bg-slate-200 transition-colors">
+              <User className="w-3.5 h-3.5" />
+            </div>
+            <span className="text-xs font-medium text-slate-600 hidden sm:block">Admin</span>
           </div>
         </div>
-
       </div>
-
     </header>
   );
 }

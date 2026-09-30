@@ -7,12 +7,14 @@ import ReportsView from './components/ReportsView';
 import DbmsConsole from './components/DbmsConsole';
 import AboutView from './components/AboutView';
 import AddStudentModal from './components/AddStudentModal';
+import CompaniesView from './components/CompaniesView';
+import DrivesView from './components/DrivesView';
+import ApplicationsView from './components/ApplicationsView';
 import { supabase } from './lib/supabase';
 import { INITIAL_STUDENTS_PLACED, INITIAL_STUDENTS_NOT_PLACED, INITIAL_NON_PLACEMENT, INITIAL_DRIVES, INITIAL_APPLICATIONS } from './data/mockDatabase';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [isDarkMode, setIsDarkMode] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Core Datasets State mapped directly to Tables
@@ -24,6 +26,13 @@ export default function App() {
   const [applications, setApplications] = useState(INITIAL_APPLICATIONS);
 
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
+  const [editingStudent, setEditingStudent] = useState(null);
+
+  const openEditModal = (student) => {
+    const currentStatus = allStudents.find(s => s.rollNo === student.rollNo)?.status || student.status;
+    setEditingStudent({ ...student, status: currentStatus });
+    setIsAddStudentOpen(true);
+  };
 
   // Fetch data from Supabase and Subscribe to Realtime Updates
   useEffect(() => {
@@ -89,14 +98,6 @@ export default function App() {
     }
   }, []);
 
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDarkMode]);
-
   // Combine for dashboard metrics and full list
   const allStudents = [
     ...placedStudents.map(s => ({ ...s, status: 'Placed' })),
@@ -105,8 +106,54 @@ export default function App() {
   ];
 
   const handleAddStudent = async (newStudent) => {
-    // Optimistic UI Update
-    setNotPlacedStudents(prev => [newStudent, ...prev]);
+    if (editingStudent) {
+      const updateList = (list) => list.map(s => s.rollNo === editingStudent.rollNo ? { ...s, ...newStudent } : s);
+      setPlacedStudents(updateList);
+      setNotPlacedStudents(updateList);
+      setNonPlacementStudents(updateList);
+
+      if (import.meta.env.VITE_SUPABASE_URL) {
+        try {
+          await supabase.from('student_details').update({
+            regno: newStudent.rollNo,
+            name: newStudent.name,
+            dept: newStudent.dept,
+            cgpa: newStudent.cgpa,
+            backlogs: newStudent.backlogs,
+          }).eq('regno', editingStudent.rollNo);
+
+          const currentStatus = allStudents.find(s => s.rollNo === editingStudent.rollNo)?.status;
+          
+          if (currentStatus === 'Placed') {
+            await supabase.from('placed').update({
+              "Register No": newStudent.rollNo,
+              "Student Name": newStudent.name,
+              "Department": newStudent.dept,
+              "Company Name": newStudent.offerCompany
+            }).eq('Register No', editingStudent.rollNo);
+          } else if (currentStatus === 'Not Placed') {
+            await supabase.from('not_placed').update({
+              regno: newStudent.rollNo,
+              name: newStudent.name,
+              dept: newStudent.dept,
+              cgpa: newStudent.cgpa,
+              backlogs: newStudent.backlogs
+            }).eq('regno', editingStudent.rollNo);
+          } else if (currentStatus === 'Non-Placement') {
+             await supabase.from('non_placement').update({
+              regno: newStudent.rollNo,
+              name: newStudent.name,
+              dept: newStudent.dept,
+              cgpa: newStudent.cgpa
+            }).eq('regno', editingStudent.rollNo);
+          }
+        } catch (err) {
+          console.error("Error updating Supabase:", err);
+        }
+      }
+    } else {
+      // Optimistic UI Update
+      setNotPlacedStudents(prev => [newStudent, ...prev]);
 
     // Supabase DB Operations
     if (import.meta.env.VITE_SUPABASE_URL) {
@@ -130,6 +177,7 @@ export default function App() {
       } catch (err) {
         console.error("Error inserting to Supabase:", err);
       }
+    }
     }
   };
 
@@ -237,13 +285,11 @@ export default function App() {
   };
 
   return (
-    <div className={`min-h-screen flex font-sans transition-colors duration-200 ${isDarkMode ? 'bg-[#12141C] text-slate-100' : 'bg-slate-100 text-slate-900'}`}>
+    <div className="min-h-screen flex font-sans bg-slate-50 text-slate-900">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
       <div className="flex-1 flex flex-col min-w-0">
         <Header
           pageTitle={pageTitles[activeTab] || 'Dashboard'}
-          isDarkMode={isDarkMode}
-          setIsDarkMode={setIsDarkMode}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
         />
@@ -259,15 +305,17 @@ export default function App() {
             <StudentsView
               viewType="all"
               data={allStudents}
-              onOpenAddStudentModal={() => setIsAddStudentOpen(true)}
+              onOpenAddStudentModal={() => { setEditingStudent(null); setIsAddStudentOpen(true); }}
+              onEditStudent={openEditModal}
             />
           )}
 
-          {activeTab === 'placed' && (
+          {activeTab === 'placements' && (
             <StudentsView
               viewType="placed"
               data={placedStudents}
               onMoveToNotPlaced={handleMoveToNotPlaced}
+              onEditStudent={openEditModal}
             />
           )}
 
@@ -275,18 +323,22 @@ export default function App() {
             <StudentsView
               viewType="not_placed"
               data={notPlacedStudents}
-              onOpenAddStudentModal={() => setIsAddStudentOpen(true)}
               onMoveToPlaced={handleMoveToPlaced}
               onMoveToNonPlacement={handleMoveToNonPlacement}
+              onEditStudent={openEditModal}
             />
           )}
 
-          {activeTab === 'non_placement' && (
-            <StudentsView
-              viewType="non_placement"
-              data={nonPlacementStudents}
-              onMoveToNotPlaced={handleMoveToNotPlaced}
-            />
+          {activeTab === 'companies' && (
+            <CompaniesView drives={drives} />
+          )}
+
+          {activeTab === 'drives' && (
+            <DrivesView drives={drives} />
+          )}
+
+          {activeTab === 'applications' && (
+            <ApplicationsView applications={applications} />
           )}
 
           {activeTab === 'about' && (
@@ -306,18 +358,18 @@ export default function App() {
           )}
 
           {activeTab === 'settings' && (
-            <div className="bg-white dark:bg-[#18181C] p-8 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm max-w-2xl">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Placement Cell Settings</h2>
-              <div className="space-y-4 text-xs">
+            <div className="bg-white p-6 border border-slate-200 max-w-2xl">
+              <h2 className="text-lg font-semibold text-slate-900 mb-4">Placement Cell Settings</h2>
+              <div className="space-y-4 text-sm">
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Institution Name</label>
-                  <input type="text" defaultValue="Placement Cell - DBMS Portal" className="w-full p-2.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl" />
+                  <label className="block font-medium text-slate-700 mb-1">Institution Name</label>
+                  <input type="text" defaultValue="Placement Cell - DBMS Portal" className="w-full p-2 bg-slate-50 border border-slate-300 focus:border-black focus:outline-none focus:ring-1 focus:ring-black" />
                 </div>
                 <div>
-                  <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">Academic Batch Year</label>
-                  <input type="text" defaultValue="2024 - 2025" className="w-full p-2.5 bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl" />
+                  <label className="block font-medium text-slate-700 mb-1">Academic Batch Year</label>
+                  <input type="text" defaultValue="2024 - 2025" className="w-full p-2 bg-slate-50 border border-slate-300 focus:border-black focus:outline-none focus:ring-1 focus:ring-black" />
                 </div>
-                <button className="px-5 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold rounded-xl shadow-md">
+                <button className="px-4 py-2 bg-black hover:bg-slate-800 text-white font-medium mt-2">
                   Save Changes
                 </button>
               </div>
@@ -328,8 +380,9 @@ export default function App() {
 
       <AddStudentModal
         isOpen={isAddStudentOpen}
-        onClose={() => setIsAddStudentOpen(false)}
+        onClose={() => { setIsAddStudentOpen(false); setEditingStudent(null); }}
         onAddStudent={handleAddStudent}
+        initialData={editingStudent}
       />
     </div>
   );

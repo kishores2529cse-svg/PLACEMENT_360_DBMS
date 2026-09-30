@@ -1,78 +1,87 @@
 import React from 'react';
-import { LayoutGrid, Users, CheckCircle2, CircleDot, UserMinus, Info, BarChart3, Settings, Database } from 'lucide-react';
+import { LayoutDashboard, Users, Building2, CalendarDays, FileText, CheckCircle, XCircle, BarChart3, User, Settings, Database } from 'lucide-react';
+import { cn } from '../lib/utils';
 
 export default function Sidebar({ activeTab, setActiveTab }) {
   const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutGrid },
-    { id: 'students', label: 'All Students', icon: Users },
-    { id: 'placed', label: 'Placed', icon: CheckCircle2 },
-    { id: 'not_placed', label: 'Not Placed', icon: CircleDot },
-    { id: 'non_placement', label: 'Non-Placement', icon: UserMinus },
-    { id: 'about', label: 'About', icon: Info },
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'students', label: 'Students', icon: Users },
+    { id: 'companies', label: 'Companies', icon: Building2 },
+    { id: 'drives', label: 'Placement Drives', icon: CalendarDays },
+    { id: 'applications', label: 'Applications', icon: FileText },
+    { id: 'placements', label: 'Placements', icon: CheckCircle },
+    { id: 'not_placed', label: 'Not Placed', icon: XCircle },
     { id: 'reports', label: 'Reports', icon: BarChart3 },
     { id: 'dbms', label: 'SQL Console', icon: Database },
   ];
 
   return (
-    <aside className="w-64 bg-[#121212] border-r border-[#1E1E22] flex flex-col justify-between p-5 min-h-screen text-slate-300 select-none shrink-0">
-      <div className="space-y-8">
-        <div className="flex items-center gap-3 cursor-pointer" onClick={() => setActiveTab('dashboard')}>
-          <div className="w-10 h-10 rounded-xl bg-yellow-500 flex items-center justify-center font-extrabold text-black text-xl shadow-lg shadow-yellow-500/20">
-            P
+    <aside className="w-64 bg-black border-r border-neutral-800 flex flex-col justify-between min-h-screen text-neutral-300 select-none shrink-0">
+      <div className="flex flex-col h-full">
+        <div className="p-5">
+          <div className="flex items-center gap-3 mb-8 px-2 cursor-pointer" onClick={() => setActiveTab('dashboard')}>
+            <div className="w-8 h-8 bg-white text-black flex items-center justify-center font-bold text-lg">
+              P
+            </div>
+            <div>
+              <div className="font-bold text-white text-sm tracking-tight leading-tight">Placement360</div>
+              <div className="text-neutral-400 text-[10px] font-medium leading-tight uppercase tracking-wider mt-0.5">University System</div>
+            </div>
           </div>
-          <div>
-            <div className="font-extrabold text-white text-base tracking-tight leading-tight">Placement</div>
-            <div className="text-yellow-500 text-xs font-bold leading-tight">360</div>
+
+          <div className="space-y-0.5">
+            <div className="text-[11px] font-semibold tracking-wider text-neutral-500 uppercase px-3 mb-3">
+              Administration
+            </div>
+            <nav className="space-y-0.5">
+              {menuItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveTab(item.id)}
+                    className={cn(
+                      "w-full flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors",
+                      isActive
+                        ? "bg-neutral-900 text-white border-l-2 border-white"
+                        : "text-neutral-400 hover:text-white hover:bg-neutral-900/50 border-l-2 border-transparent"
+                    )}
+                  >
+                    <Icon className={cn("w-4 h-4", isActive ? "text-white" : "text-neutral-500")} />
+                    <span>{item.label}</span>
+                  </button>
+                );
+              })}
+            </nav>
           </div>
         </div>
 
-        <div className="space-y-6">
-          <div className="text-[11px] font-bold tracking-wider text-slate-500 uppercase px-2">
-            Main Menu
-          </div>
-          <nav className="space-y-1.5">
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 ${
-                    isActive
-                      ? 'bg-yellow-500 text-slate-950 font-bold shadow-md shadow-yellow-500/20'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-[#1A1A1E]'
-                  }`}
-                >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-slate-950' : 'text-slate-400'}`} />
-                  <span>{item.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-      </div>
-
-      <div className="space-y-6 pt-6 border-t border-[#1E1E22]">
-        <button
-          onClick={() => setActiveTab('settings')}
-          className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-xl text-xs font-semibold transition-all ${
-            activeTab === 'settings'
-              ? 'bg-yellow-500 text-slate-950 font-bold'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-[#1A1A1E]'
-          }`}
-        >
-          <Settings className="w-4 h-4" />
-          <span>Settings</span>
-        </button>
-        <div className="flex items-center gap-3 px-2 py-2">
-          <div className="w-9 h-9 rounded-full bg-yellow-500 text-slate-950 font-extrabold flex items-center justify-center text-sm shadow-md">
-            A
-          </div>
-          <div className="truncate">
-            <div className="text-xs font-bold text-white leading-tight">Admin</div>
-            <div className="text-[11px] text-slate-400 leading-tight">Placement Cell</div>
-          </div>
+        <div className="p-4 mt-auto space-y-0.5 border-t border-neutral-900">
+          <button
+            onClick={() => setActiveTab('profile')}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors",
+              activeTab === 'profile'
+                ? "bg-neutral-900 text-white border-l-2 border-white"
+                : "text-neutral-400 hover:text-white hover:bg-neutral-900/50 border-l-2 border-transparent"
+            )}
+          >
+            <User className="w-4 h-4 text-neutral-500" />
+            <span>Profile</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('settings')}
+            className={cn(
+              "w-full flex items-center gap-3 px-3 py-2 text-sm font-medium transition-colors",
+              activeTab === 'settings'
+                ? "bg-neutral-900 text-white border-l-2 border-white"
+                : "text-neutral-400 hover:text-white hover:bg-neutral-900/50 border-l-2 border-transparent"
+            )}
+          >
+            <Settings className="w-4 h-4 text-neutral-500" />
+            <span>Settings</span>
+          </button>
         </div>
       </div>
     </aside>

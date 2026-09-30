@@ -1,161 +1,218 @@
-import React, { useState } from 'react';
-import { X, UserPlus, GraduationCap } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X } from 'lucide-react';
+import { Button } from './ui/Button';
+import { Input } from './ui/Input';
 
-export default function AddStudentModal({ isOpen, onClose, onAddStudent }) {
+export default function AddStudentModal({ isOpen, onClose, onAddStudent, initialData }) {
   const [form, setForm] = useState({
-    rollNo: `25CSE${Math.floor(100 + Math.random() * 900)}`,
+    rollNo: '',
     name: '',
     dept: 'CSE',
-    cgpa: '8.5',
-    backlogs: '0',
+    cgpa: '',
+    backlogs: '',
     email: '',
-    skills: 'React, Node.js, SQL',
+    skills: '',
+    offerCompany: '',
   });
+
+  useEffect(() => {
+    if (initialData && isOpen) {
+      setForm({
+        rollNo: initialData.rollNo || '',
+        name: initialData.name || '',
+        dept: initialData.dept || 'CSE',
+        cgpa: initialData.cgpa || '',
+        backlogs: initialData.backlogs || '',
+        email: initialData.email || '',
+        skills: initialData.skills && Array.isArray(initialData.skills) ? initialData.skills.join(', ') : (initialData.skills || ''),
+        offerCompany: initialData.offerCompany || '',
+      });
+    } else if (isOpen) {
+      setForm({
+        rollNo: '',
+        name: '',
+        dept: 'CSE',
+        cgpa: '',
+        backlogs: '',
+        email: '',
+        skills: '',
+        offerCompany: '',
+      });
+    }
+  }, [initialData, isOpen]);
+
+  const [isLoading, setIsLoading] = useState(false);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name || !form.rollNo) return;
+
+    setIsLoading(true);
 
     const newStudent = {
       rollNo: form.rollNo,
       name: form.name,
       dept: form.dept,
       cgpa: parseFloat(form.cgpa),
-      backlogs: parseInt(form.backlogs),
-      status: 'Eligible',
-      offerCompany: null,
+      backlogs: isNaN(parseInt(form.backlogs)) ? 0 : parseInt(form.backlogs),
+      status: initialData ? initialData.status : 'Not Placed',
+      offerCompany: form.offerCompany || null,
       ctc: 0,
       email: form.email || `${form.name.toLowerCase().replace(/\s+/g, '.')}@college.edu`,
-      skills: form.skills.split(',').map(s => s.trim()).filter(Boolean),
+      skills: form.skills ? form.skills.split(',').map(s => s.trim()).filter(Boolean) : [],
       phone: '+91 9876543210'
     };
 
-    onAddStudent(newStudent);
+    await new Promise(r => setTimeout(r, 600));
+
+    await onAddStudent(newStudent);
+    
+    // Reset form after submit
+    setForm({
+      rollNo: '',
+      name: '',
+      dept: 'CSE',
+      cgpa: '',
+      backlogs: '',
+      email: '',
+      skills: '',
+      offerCompany: '',
+    });
+    
+    setIsLoading(false);
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-      <div className="glass-card w-full max-w-lg rounded-2xl p-6 border border-slate-700 shadow-2xl relative">
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
-        >
-          <X className="w-5 h-5" />
-        </button>
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 pb-4 px-4 bg-slate-900/40">
+      <div className="w-full max-w-lg bg-white border border-slate-300 shadow-xl flex flex-col max-h-[85vh]">
+        
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 shrink-0 bg-slate-50">
+          <div>
+            <h3 className="text-base font-semibold text-slate-900">
+              {initialData ? 'Edit Student Record' : 'Add New Student'}
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {initialData ? 'Update the details for this student.' : 'Register a new student into the placement database.'}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-900 p-1.5 hover:bg-slate-200 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
 
-        <h3 className="text-lg font-bold text-white flex items-center gap-2 mb-1">
-          <UserPlus className="w-5 h-5 text-indigo-400" />
-          Add New Student Record
-        </h3>
-        <p className="text-xs text-slate-400 mb-5">Insert record into STUDENTS relational table.</p>
+        {/* Form Body */}
+        <div className="p-6 overflow-y-auto">
+          <form id="add-student-form" onSubmit={handleSubmit} className="space-y-4">
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700">Register Number <span className="text-[#da1e28]">*</span></label>
+                <Input
+                  required
+                  value={form.rollNo}
+                  onChange={(e) => setForm({ ...form, rollNo: e.target.value })}
+                  className="font-mono"
+                />
+              </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Roll Number</label>
-              <input
-                type="text"
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700">Department <span className="text-[#da1e28]">*</span></label>
+                <select
+                  value={form.dept}
+                  onChange={(e) => setForm({ ...form, dept: e.target.value })}
+                  className="flex h-9 w-full border border-slate-300 bg-white px-3 py-1.5 text-sm focus-visible:outline-none focus-visible:border-black focus-visible:ring-1 focus-visible:ring-black"
+                >
+                  <option value="CSE">CSE</option>
+                  <option value="IT">IT</option>
+                  <option value="ECE">ECE</option>
+                  <option value="EEE">EEE</option>
+                  <option value="MECH">MECH</option>
+                  <option value="AIDS">AIDS</option>
+                  <option value="AGRI">AGRI</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-700">Full Name <span className="text-[#da1e28]">*</span></label>
+              <Input
                 required
-                value={form.rollNo}
-                onChange={(e) => setForm({ ...form, rollNo: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs font-mono text-indigo-400 focus:outline-none focus:border-indigo-500"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Department / Branch</label>
-              <select
-                value={form.dept}
-                onChange={(e) => setForm({ ...form, dept: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-indigo-500"
-              >
-                <option value="CSE">CSE</option>
-                <option value="IT">IT</option>
-                <option value="ECE">ECE</option>
-                <option value="EEE">EEE</option>
-                <option value="MECH">MECH</option>
-              </select>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700">CGPA <span className="text-[#da1e28]">*</span></label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  required
+                  value={form.cgpa}
+                  onChange={(e) => setForm({ ...form, cgpa: e.target.value })}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700">Active Backlogs <span className="text-[#da1e28]">*</span></label>
+                <Input
+                  type="number"
+                  required
+                  min="0"
+                  value={form.backlogs}
+                  onChange={(e) => setForm({ ...form, backlogs: e.target.value })}
+                />
+              </div>
             </div>
-          </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Student Full Name</label>
-            <input
-              type="text"
-              required
-              placeholder="e.g. Ramesh Kumar"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-indigo-500"
-            />
-          </div>
+            {initialData && initialData.status === 'Placed' && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-700">Company Name <span className="text-[#da1e28]">*</span></label>
+                <Input
+                  required
+                  value={form.offerCompany}
+                  onChange={(e) => setForm({ ...form, offerCompany: e.target.value })}
+                />
+              </div>
+            )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Cumulative CGPA</label>
-              <input
-                type="number"
-                step="0.01"
-                required
-                value={form.cgpa}
-                onChange={(e) => setForm({ ...form, cgpa: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-indigo-500"
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-700">Email Address</label>
+              <Input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
               />
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">Active Backlogs</label>
-              <input
-                type="number"
-                required
-                value={form.backlogs}
-                onChange={(e) => setForm({ ...form, backlogs: e.target.value })}
-                className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-indigo-500"
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-slate-700">Technical Skills (comma separated)</label>
+              <Input
+                value={form.skills}
+                onChange={(e) => setForm({ ...form, skills: e.target.value })}
               />
             </div>
-          </div>
+          </form>
+        </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Email Address</label>
-            <input
-              type="email"
-              placeholder="student@college.edu"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-indigo-500"
-            />
-          </div>
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-slate-200 shrink-0 flex justify-end gap-2 bg-slate-50">
+          <Button variant="outline" onClick={onClose} disabled={isLoading}>
+            Cancel
+          </Button>
+          <Button form="add-student-form" type="submit" disabled={isLoading}>
+            {isLoading ? 'Saving...' : initialData ? 'Update Record' : 'Save Record'}
+          </Button>
+        </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-300 mb-1">Technical Skills (comma separated)</label>
-            <input
-              type="text"
-              placeholder="Python, React, AWS, C++"
-              value={form.skills}
-              onChange={(e) => setForm({ ...form, skills: e.target.value })}
-              className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-100 focus:outline-none focus:border-indigo-500"
-            />
-          </div>
-
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white bg-slate-900 hover:bg-slate-800"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-5 py-2 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-lg shadow-indigo-600/30"
-            >
-              Save Student Record
-            </button>
-          </div>
-        </form>
       </div>
     </div>
   );
