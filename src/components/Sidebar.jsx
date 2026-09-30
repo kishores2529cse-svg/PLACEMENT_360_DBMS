@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Users, Building2, CalendarDays, FileText, CheckCircle, XCircle, BarChart3, User, Settings, Database } from 'lucide-react';
+import { LayoutDashboard, Users, Building2, CalendarDays, FileText, CheckCircle, XCircle, BarChart3, User, Settings, Database, Info } from 'lucide-react';
 import { cn } from '../lib/utils';
 
 export default function Sidebar({ activeTab, setActiveTab, isOpen, setIsOpen }) {
@@ -13,6 +13,7 @@ export default function Sidebar({ activeTab, setActiveTab, isOpen, setIsOpen }) 
     { id: 'not_placed', label: 'Not Placed', icon: XCircle },
     { id: 'reports', label: 'Reports', icon: BarChart3 },
     { id: 'dbms', label: 'SQL Console', icon: Database },
+    { id: 'about', label: 'About', icon: Info },
   ];
 
   return (
